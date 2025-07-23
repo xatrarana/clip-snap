@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "prebuild":"./binarysetup.sh",
+    "prebuild": "./binarysetup.sh",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.25.4",
     "lucide-react": "^0.525.0",
     "next": "15.4.2",
     "react": "19.1.0",
