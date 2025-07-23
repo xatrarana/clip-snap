@@ -3,7 +3,7 @@ set -e
 # Create bin directory if it doesn't exist
 mkdir -p ./bin
 
-if [[ -f ./bin/ffmpeg ]]; then
+if [[ "$NODE_ENV" != "production" && -f ./bin/ffmpeg ]]; then
     echo "✅ FFmpeg already exists in ./bin — skipping download."
     exit 0
 fi
