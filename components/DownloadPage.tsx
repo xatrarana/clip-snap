@@ -1,39 +1,48 @@
 'use client';
-import { useState } from "react";
+import { useState, JSX } from "react";
 import { Download, Play, Scissors, Image, Globe, Star, Zap, Shield, ArrowRight, Check } from 'lucide-react';
+import { useDownload } from "@/context/DownloadContext";
+import { DownloadType } from "@/types";
+
+interface DownloadOption {
+  id: DownloadType;
+  icon: JSX.Element;
+  label: string;
+  desc: string;
+}
+
+const downloadOptions: DownloadOption[] = [
+  {
+    id: 'full',
+    icon: <Download className="w-5 h-5" />,
+    label: 'Full Video',
+    desc: 'Complete video file',
+  },
+  {
+    id: 'thumbnail',
+    icon: <Image className="w-5 h-5" />,
+    label: 'Thumbnail',
+    desc: 'Video preview image',
+  },
+  {
+    id: 'clip',
+    icon: <Scissors className="w-5 h-5" />,
+    label: 'Short Clip',
+    desc: 'Custom time range',
+  },
+];
 
 export default function DownloadPage() {
   const [url, setUrl] = useState('');
-  const [downloadType, setDownloadType] = useState('full');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [downloadType, setDownloadType] = useState<DownloadType>('full');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
-
-  // Simulate processing with progress
-  const simulateDownload = () => {
-    setIsProcessing(true);
-    setProgress(0);
-    
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsProcessing(false);
-          // Reset after completion
-          setTimeout(() => setProgress(0), 2000);
-          return 100;
-        }
-        return prev + Math.random() * 15;
-      });
-    }, 200);
-  };
-
+  const {isProcessing, progress,error, startDownload} = useDownload();
+  
   const handleDownload = () => {
-    if (!url.trim()) return;
-    simulateDownload();
+    startDownload({ url, downloadType });
   };
-
+  
   const platforms = [
     { name: 'YouTube', supported: true },
     { name: 'Instagram', supported: true },
@@ -102,11 +111,8 @@ export default function DownloadPage() {
                 Download Type
               </label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  { id: 'full', icon: <Download className="w-5 h-5" />, label: 'Full Video', desc: 'Complete video file' },
-                  { id: 'thumbnail', icon: <Image className="w-5 h-5" />, label: 'Thumbnail', desc: 'Video preview image' },
-                  { id: 'clip', icon: <Scissors className="w-5 h-5" />, label: 'Short Clip', desc: 'Custom time range' }
-                ].map((type) => (
+              { 
+              downloadOptions.map((type) => (
                   <div
                     key={type.id}
                     onClick={() => setDownloadType(type.id)}
@@ -122,7 +128,8 @@ export default function DownloadPage() {
                     </div>
                     <p className="text-sm text-gray-400">{type.desc}</p>
                   </div>
-                ))}
+                ))
+              }
               </div>
             </div>
 
