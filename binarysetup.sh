@@ -3,6 +3,11 @@ set -e
 # Create bin directory if it doesn't exist
 mkdir -p ./bin
 
+if [[ -f ./bin/ffmpeg ]]; then
+    echo "✅ FFmpeg already exists in ./bin — skipping download."
+    exit 0
+fi
+
 # Define FFmpeg version and platform
 FFMPEG_URL="https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
 
