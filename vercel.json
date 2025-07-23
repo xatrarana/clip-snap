@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/download/route.ts": {
-      "includeFiles": ["bin/ffmpeg", "bin/yt-dlp"]
+      "includeFiles": "bin/**" 
     }
   }
 }
