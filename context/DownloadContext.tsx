@@ -1,5 +1,7 @@
 'use client';
 import React, { createContext, useContext, useState, ReactNode, useRef } from 'react';
+import {toast} from 'react-toastify';
+import "react-toastify/dist/ReactToastify.css"
 
 type DownloadType = 'full' | 'clip' | 'thumbnail';
 
@@ -21,80 +23,65 @@ export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) 
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
-  // To throttle progress updates
   const lastProgressUpdateRef = useRef<number>(0);
+  let progressInterval: ReturnType<typeof setInterval> | null = null;
 
   const startDownload = async ({ url, downloadType }: { url: string; downloadType: DownloadType }) => {
-    if (!url.trim()) {
-      setError('URL cannot be empty');
-      setProgress(0);
-      return;
-    }
+      if (!url.trim()) {
+          setError('URL cannot be empty');
+          setProgress(0);
+          return;
+      }
 
-    setIsProcessing(true);
-    setProgress(0);
-    setError(null);
-    lastProgressUpdateRef.current = 0;
+      setIsProcessing(true);
+      setProgress(10);
+      setError(null);
+      lastProgressUpdateRef.current = 0;
 
-    try {
-       const endpoint = `/api/download?url=${encodeURIComponent(url)}&type=${downloadType}`;
-      const res = await fetch(endpoint);
-      if (!res.ok) throw new Error(`File download failed with status${res.status}`);
-      const contentLength = res.headers.get('content-length');
-      const total = contentLength ? parseInt(contentLength, 10) : undefined;
+      try {
+          lastProgressUpdateRef.current = 10;
 
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error('No response body found');
+          progressInterval = setInterval(() => {
+              setProgress(prev => {
+                  const next = Math.min(prev + 5, 90);
+                  lastProgressUpdateRef.current = next;
+                  return next;
+              });
+          }, 1000);          
+          const endpoint = `/api/download?url=${encodeURIComponent(url)}&type=${downloadType}`;
+          const res = await fetch(endpoint);
+          //if (!res.ok) throw new Error(`File download failed with status ${res.status}`);
 
-      let loaded = 0;
-      const chunks: Uint8Array[] = [];
+          const data = await res.json();
 
-      while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          if (value) {
-              chunks.push(value);
-              loaded += value.length;
-
-              if (total) {
-                  // Throttle progress updates: update at most every 100ms or on progress change
-                  const currentProgress = Math.round((loaded / total) * 100);
-                  const now = Date.now();
-
-                  if (
-                      currentProgress !== lastProgressUpdateRef.current &&
-                      (now - lastProgressUpdateRef.current > 100 || currentProgress === 100)
-                  ) {
-                      lastProgressUpdateRef.current = currentProgress;
-                      setProgress(currentProgress);
-                  }
-              }
+          if (data.success && data.filename) {
+              setProgress(100)
+              const downloadUrl = `/api/video/serve?fid=${encodeURIComponent(data.filename)}`;
+              const link = document.createElement('a');
+              link.href = downloadUrl;
+              link.download = data.filename; 
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              toast.success(`${data.filename} downloaded`);
           }
+          else {
+              
+              throw new Error(data?.error || 'Unknown error occurred.');
+          }
+
+      } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          if (process.env.NODE_ENV === 'development') console.error(message);
+          toast.error(message)
+          setError(message);
+          setProgress(0);
+      } finally {
+           if (progressInterval) clearInterval(progressInterval);
+          setIsProcessing(false);
       }
-
-      if (!total) {
-          setProgress(100);
-      }
-
-      const blob = new Blob(chunks, { type: 'video/mp4' });
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = `video-${Date.now()}.mp4`; // or get filename from headers later
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error(message);
-        setError(message);
-        setProgress(0);
-    } finally {
-        setIsProcessing(false);
-    }
-
   };
+ 
 
   return (
     <DownloadContext.Provider

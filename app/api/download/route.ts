@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn } from 'child_process';
-import { Readable } from 'stream';
+import path from 'path';
+import fs from 'fs/promises';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { v4 as uuid } from 'uuid'; 
+import { extractYtDlpError } from '@/lib/utils';
+
+const execAsync = promisify(exec);
+
+async function getVideoExtension(ytDlpPath: string, ffmpegPath: string, url: string): Promise<string> {
+
+  const command = `"${ytDlpPath}" --ffmpeg-location "${ffmpegPath}" --skip-download --print filename -o "%(ext)s" "${url}"`;
+  
+  const { stdout, stderr } = await execAsync(command);
+  if (stderr) console.warn('yt-dlp stderr:', stderr);
+
+  const ext = stdout.trim();
+  return ext || 'mp4'; 
+}
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get('url');
@@ -8,38 +25,36 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Missing URL' }, { status: 400 });
   }
 
-  const binPath = process.cwd() + '/bin';
-  const ytDlpPath = `${binPath}/yt-dlp`;
-  const ffmpegPath = `${binPath}/ffmpeg`;
-
   try {
-    const ytDlp = spawn(ytDlpPath, [
-      url,
-      '--ffmpeg-location', ffmpegPath,
-      '-f', 'best[ext=mp4]/best', // stream-friendly format
-      '-o', '-', // Output to stdout
-    ]);
+    const binPath = path.join(process.cwd(), 'bin');
+    const ytDlpPath = path.join(binPath, 'yt-dlp');
+    const ffmpegPath = path.join(binPath, 'ffmpeg');
+    const downloadDir = path.join(process.cwd(), 'tmp');
 
-    const stream = new Readable({
-      read() {
-        ytDlp.stdout.on('data', chunk => this.push(chunk));
-        ytDlp.stdout.on('end', () => this.push(null));
-      },
-    });
+    // Ensure downloads folder exists
+    await fs.mkdir(downloadDir, { recursive: true });
+    
+   const ext = await getVideoExtension(ytDlpPath, ffmpegPath, url); 
+   const uniqueId = `video-${uuid()}`; 
+   const filename = `${uniqueId}.${ext}`;
 
-    ytDlp.stderr.on('data', data => console.error('yt-dlp stderr:', data.toString()));
-    ytDlp.on('error', err => console.error('yt-dlp error:', err));
+    const outputTemplate = path.join(downloadDir, `${uniqueId}.%(ext)s`);
 
-    return new NextResponse(stream as any, {
-      headers: {
-        'Content-Type': 'video/mp4',
-        'Content-Disposition': `attachment; filename="video.mp4"`,
-        'Cache-Control': 'no-store',
-      },
-    });
+    const command = `"${ytDlpPath}" --ffmpeg-location "${ffmpegPath}" -o "${outputTemplate}" "${url}"`;
+    
+    const { stdout, stderr } = await execAsync(command);
+
+    if (stdout) console.log('yt-dlp output:', stdout);
+
+    if (stderr && process.env.NODE_ENV !== 'production') {
+        console.warn('yt-dlp stderr:', stderr);
+    } 
+
+    return NextResponse.json({ success: true, filename });
   } catch (error: any) {
-    console.error('Download error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    if (process.env.NODE_ENV === 'development') console.error('yt-dlp error:', error.message);
+    const shortError = extractYtDlpError(error.message) ?? "Something went wrong!!";
+    return NextResponse.json({ success: false, error: shortError }, { status: 500 });
   }
 }
 

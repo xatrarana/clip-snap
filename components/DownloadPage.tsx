@@ -47,7 +47,7 @@ export default function DownloadPage() {
     { name: 'YouTube', supported: true },
     { name: 'Instagram', supported: true },
     { name: 'Facebook', supported: true },
-    { name: 'TikTok', supported: false },
+    { name: 'TikTok', supported: true },
     { name: 'Vimeo', supported: false }
   ];
 
@@ -196,6 +196,7 @@ export default function DownloadPage() {
                 </>
               )}
             </button>
+
 
             {/* Supported Platforms */}
             <div className="mt-8 pt-6 border-t border-white/10">
