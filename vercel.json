@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/download/route.ts": {
+    "api/download/**/*.ts": {
       "includeFiles": "bin/**" 
     }
   }
