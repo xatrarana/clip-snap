@@ -11,7 +11,7 @@ export function useSSE({ active, onStatusUpdate }: UseDownloadSSEOptions) {
   useEffect(() => {
     if (!active) return;
 
-    const es = new EventSource('http://localhost:4500/video/download/status', {
+    const es = new EventSource(`${process.env.NEXT_PUBLIC_API_URL}/video/download/status`, {
       withCredentials: true,
     });
 
