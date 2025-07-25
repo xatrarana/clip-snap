@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css"
 
 type DownloadType = 'full' | 'clip' | 'thumbnail';
+const URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface DownloadContextProps {
   isProcessing: boolean;
@@ -49,11 +50,15 @@ export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) 
 
     try {
 
+       if(downloadType != 'full') {
+        alert("Feature comming soon!!")
+        return;
+       }
        const data = await downloadVideo(url, downloadType);
 
       if (data.success && data.filename) {
         setProgress(100)
-        const downloadUrl = `http://localhost:4500/video/stream?fid=${encodeURIComponent(data.filename)}`;
+        const downloadUrl = `${URL}/video/stream?fid=${encodeURIComponent(data.filename)}`;
         const link = document.createElement('a');
         link.href = downloadUrl;
         link.download = data.filename;

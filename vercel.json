@@ -1,8 +1,0 @@
-{
-  "functions": {
-    "api/download/**/*.ts": {
-      "includeFiles": "bin/**" 
-    }
-  }
-}
-

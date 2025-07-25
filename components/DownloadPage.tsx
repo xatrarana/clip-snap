@@ -6,11 +6,13 @@ import { SupportedPlatforms } from './SupportedPlatforms';
 import { DownloadType } from '@/types';
 import { DownloadForm } from './DownloadFrom';
 
+const URL = process.env.NEXT_PUBLIC_API_URL as string;
+
 export default function DownloadPage() {
   const { isProcessing, progress, error, status, startDownload } = useDownload();
 
   // Local state for inputs
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useState("");
   const [downloadType, setDownloadType] = useState<DownloadType>('full');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
